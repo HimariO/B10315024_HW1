@@ -157,8 +157,10 @@ class VernamAutoCipher(CipherBase):
         result = []
 
         for w, k in zip(plaintext, self.extend_key(plaintext)):
-            result.append((ord(w) + ord(k) - ord('a') * 2) % 26 + ord('a'))
-        result = list(map(lambda x: chr(x), result))
+            result.append(((ord(w) - ord('a')) ^ (ord(k) - ord('a'))))
+
+        table = [chr(i) for i in range(ord('a'), ord('z') + 1)] + [str(i) for i in range(6)]
+        result = list(map(lambda x: table[x], result))
         return self._concat_chars(result)
 
     def decrypt(self, cyphertext):
@@ -169,12 +171,22 @@ class VernamAutoCipher(CipherBase):
         lastout = None
 
         result = ''
-        table = [chr(i) for i in range(ord('a'), ord('z') + 1)]
+        table = [chr(i) for i in range(ord('a'), ord('z') + 1)] + [str(i) for i in range(6)]
+        sub = [chr(i) for i in range(123, 129)]
+
+        temp_ = ''
+        for i in range(len(cyphertext)):
+            if cyphertext[i] in '012345':
+                temp_ += sub[int(cyphertext[i])]
+            else:
+                temp_ += cyphertext[i]
+        cyphertext = temp_
+
         for sec in range(0, len(cyphertext), sec_size):
             sec_text = cyphertext[sec: sec + sec_size]
             sec_key = lastout if sec != 0 else self.key
             # print(sec_text)
-            sec_out = [table[ord(w) - ord(k)] for w, k in zip(sec_text, sec_key)]
+            sec_out = [table[(ord(w) - ord('a')) ^ (ord(k) - ord('a'))] for w, k in zip(sec_text, sec_key)]
             lastout = sec_out = self._concat_chars(sec_out)
             result += sec_out
 
