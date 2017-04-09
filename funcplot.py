@@ -1,71 +1,66 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import math
+from findingM import *
+from termcolor import colored
+
 
 def f(x):
-    c = [1, 2, -2]  # reverse order
+    c = [-11, -3, 2]  # reverse order
     return sum([c[i] * x ** (i) for i in range(len(c))])
 
-def f2(t):
-    return np.exp(-t)
 
-def Bisection(a, b, f):
-    if not callable(f):
-        raise ValueError('f should be function')
-
-    mid_points = [a, b]
-    mid_points_f = [f(a), f(b)]
-    while True:
-        c = (a + b) / 2
-        f_c = f(c)
-        mid_points.append(c)
-        mid_points_f.append(f_c)
-
-        if math.fabs(f_c) < 1e-3:
-            break
-
-        if f_c * f(a) < 0:
-            b = c
-        else:
-            a = c
-    # x, y
-    return mid_points, mid_points_f
-
-def FalseP(a, b, f):
-    if not callable(f):
-        raise ValueError('f should be function')
-
-    mid_points = [a, b]
-    mid_points_f = [f(a), f(b)]
-    count = 0
-    while True:
-        count += 1
-        d = (a - b) / (f(a) - f(b))
-        c = b - f(b) * d
-        f_c = f(c)
-        mid_points.append(c)
-        mid_points_f.append(f_c)
-
-        if math.fabs(f_c) < 1e-3 or count > 100:
-            break
-
-        if f_c * f(a) < 0:
-            a = c
-            b = a
-        else:
-            b = c
-    # x, y
-    return mid_points, mid_points_f
+def df(x):
+    c = [-3, 2]  # reverse order
+    return sum([(i + 1) * c[i] * (x ** i) for i in range(len(c))])
 
 
+def f2(x):
+    return 2 ** x - 0.5
 
+
+def df2(x):
+    return np.log(2) * 2 ** x
+
+
+def f3(x):
+    return np.cos(x ** 2)
+
+
+def df3(x):
+    return -np.sin(x ** 2)
+
+
+def ploting(xs, ys, grid, f, title=None):
+    plt.subplot(*grid)
+
+    t1 = np.arange(min(xs), max(xs), 0.1)
+    plt.plot(
+        xs, ys, 'r',
+        xs[1:-1], ys[1:-1], 'bo',
+        xs[:1], ys[:1], 'go',
+        xs[-1:], ys[-1:], 'ro'
+    )
+    plt.plot(t1, f(t1), 'b--')
+    plt.margins(0.1, 0.1)
+
+    if title is not None:
+        plt.title(title)
+
+F = f
+dF = df
 
 plt.figure(1)
-# plt.plot(t1, f(t1), 'b', t2, f(t2), 'k')
-xs, ys = FalseP(-5, 5, f)
-print([(x, y) for x, y in zip(xs, ys)])
-t1 = np.arange(min(xs), max(xs), 0.1)
+xs, ys = Bisection(-3, 5, F)
+ploting(xs, ys, [2, 2, 1], F, title='Bisection')
 
-plt.plot(xs, ys, 'r')
-plt.plot(t1, f(t1), 'b--')
+xs, ys = Secant(-3, 5, F)
+ploting(xs, ys, [2, 2, 2], F, title='Secant')
+
+xs, ys = FalseP(-3, 5, F)
+ploting(xs, ys, [2, 2, 3], F, title='False Position')
+
+xs, ys = Newton(-3, F, dF)
+ploting(xs, ys, [2, 2, 4], F, title='Newton')
+
 plt.show()
