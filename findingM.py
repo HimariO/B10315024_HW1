@@ -22,13 +22,14 @@ def Bisection(a, b, f):
         mid_points.append(c)
         mid_points_f.append(f_c)
 
-        if math.fabs(f_c) < 1e-3 or count > 100:
-            break
 
         if f_c * f(a) < 0:
             b = c
         else:
             a = c
+
+        if math.fabs(f_c) < 1e-3 or count > 100 or math.fabs(a / b) < 1e-3:
+            break
     # x, y
     return mid_points, mid_points_f
 
@@ -61,14 +62,15 @@ def FalseP(a, b, f):
         mid_points.append(c)
         mid_points_f.append(f1)
 
-        if math.fabs(f1) < 1e-3 or count > 100:
-            break
 
         if f1 * f(b) < 0:
             a = c
             b = b
         else:
             b = c
+
+        if math.fabs(f1) < 1e-3 or count > 100 or math.fabs(a / b) < 1e-4:
+            break
     # x, y
     return mid_points, mid_points_f
 
@@ -101,11 +103,12 @@ def Secant(a, b, f):
         mid_points.append(c)
         mid_points_f.append(f1)
 
-        if math.fabs(f1) < 1e-3 or count > 100:
-            break
 
         a = b
         b = c
+        if math.fabs(f1) < 1e-3 or count > 100 or math.fabs(a / b) < 1e-3:
+            break
+    print('Finish')
     return mid_points, mid_points_f
 
 

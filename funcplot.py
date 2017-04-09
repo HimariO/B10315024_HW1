@@ -6,12 +6,12 @@ from termcolor import colored
 
 
 def f(x):
-    c = [-11, -3, 2]  # reverse order
+    c = [-1, 4, -2]  # reverse order
     return sum([c[i] * x ** (i) for i in range(len(c))])
 
 
 def df(x):
-    c = [-3, 2]  # reverse order
+    c = [4, -2]  # reverse order
     return sum([(i + 1) * c[i] * (x ** i) for i in range(len(c))])
 
 
@@ -29,6 +29,12 @@ def f3(x):
 
 def df3(x):
     return -np.sin(x ** 2)
+
+def f4(x):
+    return 4 * x + 3
+
+def df4(x):
+    return 4
 
 
 def ploting(xs, ys, grid, f, title=None):
@@ -51,16 +57,16 @@ F = f
 dF = df
 
 plt.figure(1)
-xs, ys = Bisection(-3, 5, F)
+xs, ys = Bisection(-5, 5, F)
 ploting(xs, ys, [2, 2, 1], F, title='Bisection')
 
-xs, ys = Secant(-3, 5, F)
+xs, ys = Secant(-5, 5, F)
 ploting(xs, ys, [2, 2, 2], F, title='Secant')
 
-xs, ys = FalseP(-3, 5, F)
+xs, ys = FalseP(-5, 5, F)
 ploting(xs, ys, [2, 2, 3], F, title='False Position')
 
-xs, ys = Newton(-3, F, dF)
+xs, ys = Newton(-5, F, dF)
 ploting(xs, ys, [2, 2, 4], F, title='Newton')
 
 plt.show()
