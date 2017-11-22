@@ -114,6 +114,7 @@ int main(void){
 					}
 					else if (fsm.state == _RECOVER) {
 						fsm.cwnd = fsm.ssthresh;
+						fsm.state = _C_AVOID;
 						print_cwnd(fsm.cwnd);
 					}
 					else if (fsm.state == _C_AVOID) {
