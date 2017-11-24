@@ -7,7 +7,9 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdbool.h>
+#include <stdarg.h>
 
+#define DEBUG true
 
 void close_socket(int s){
 	close(s);
@@ -34,11 +36,14 @@ typedef enum {
 } FSM_STATE;
 
 struct TCP_FSM {
-	int seq, last_acked, cwnd, cwnd_seq;
+	int seq, last_acked;
+	int cwnd, cwnd_seq;
   int dup_ack, dup_count;
   int ack;
   int ssthresh;
   FSM_STATE state;
+	int sw_head;
+	int slide_window[256];
 };
 
 struct TCP_PK {
@@ -58,13 +63,24 @@ typedef enum {
 ACK_STATE ACK_check(struct TCP_PK *pk, struct TCP_FSM *fsm) {
   if (pk->ack >= 0 && pk->ack == fsm->last_acked + 1)
     return _ACKED;
-  else if (pk->ack >= 0 && pk->ack <= fsm->last_acked)
+  else if (pk->ack >= 0 && pk->ack < fsm->last_acked)
     return _OUT_ORDER;
   else if (pk->ack >= 0 && pk->ack == fsm->last_acked)
     return _DUP;
   else
     return _UNKOWN;
 }
-// int PK_size(TCP_PK &pk) {
-// 	return pk.data_size + sizeof(int) * 2;
-// }
+
+int window_id(struct TCP_FSM* fsm, int seq) {
+	return ((seq - fsm->cwnd_seq) + fsm->sw_head) % fsm->cwnd;
+	// return ((fsm->cwnd_seq % fsm->cwnd) + seq) % fsm->cwnd;
+}
+
+void debug_printf(const char *fmt, ...) {
+	if(DEBUG){
+		va_list args;
+		va_start(args, fmt);
+		vprintf(fmt, args);
+		va_end(args);
+	}
+}

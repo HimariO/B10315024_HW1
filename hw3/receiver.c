@@ -1,7 +1,7 @@
 #include "toolbox.h"
 
 #define BUFLEN 512
-#define NPACK 500
+#define NPACK 50
 #define PORT 9930
 
 #define FREEZE false
@@ -16,7 +16,7 @@ int main(void){
 	char buf[BUFLEN];
 	bool recv_buf[NPACK + 1];
 	int recv_index = 1;
-	bool lose = false;
+	bool lose = true;
 
 	recv_buf[0] = true;
 	for(i = 1; i < NPACK + 1; i++) recv_buf[i] = false;
@@ -38,35 +38,35 @@ int main(void){
 	}
 
 	while(recv_index < NPACK + 1){
-    printf("start with %d\n", recv_index);
+    debug_printf("recv_index %d\n", recv_index);
 		struct TCP_PK pk = { -1, 0, "", 0 };
 
 		if (recvfrom(s, (void *)&pk, sizeof(TCP_PK), 0, (struct sockaddr*) &si_other, (socklen_t*) &slen)==-1)
 			perror("recvfrom()");
 
-		int ack = pk.seq;
+		// int ack = pk.seq;
 
-		if(ack == 2 && lose){
+		if(pk.seq == 2 && lose){
 			lose = false;
 			continue;
 		}
 
-		recv_buf[ack] = true;
+		recv_buf[pk.seq] = true;
 
-		// while(recv_buf[recv_index] && recv_index < NPACK + 1) recv_index++;
-		recv_index += pk.data_size;
+		while(recv_buf[recv_index] && recv_index < NPACK + 1) recv_index++;
+		// recv_index += 1;
 
 		printf(
 			"Received packet from %s:%d\nSeq: %d\n\n",
 			inet_ntoa(si_other.sin_addr),
 			ntohs(si_other.sin_port),
-			ack
+			pk.seq
 		);
 
 		// memset(buf, 0, BUFLEN);
 		// sprintf(buf, "%d", recv_index);
 		struct TCP_PK ack_pk = { -1, 0, "", 0 };
-		ack_pk.ack = pk.seq + 1;
+		ack_pk.ack = recv_index;
 
 		sendto(s, (void *)&ack_pk, sizeof(TCP_PK), 0, (struct sockaddr*) &si_other, (socklen_t) slen);
 	}
