@@ -1,7 +1,7 @@
 #include "toolbox.h"
 
 #define BUFLEN 512
-#define NPACK 50
+#define NPACK 20
 #define PORT 9930
 
 #define FREEZE false
@@ -46,7 +46,7 @@ int main(void){
 
 		// int ack = pk.seq;
 
-		if(pk.seq == 2 && lose){
+		if(pk.seq == 3 && lose){
 			lose = false;
 			continue;
 		}
@@ -54,7 +54,6 @@ int main(void){
 		recv_buf[pk.seq] = true;
 
 		while(recv_buf[recv_index] && recv_index < NPACK + 1) recv_index++;
-		// recv_index += 1;
 
 		printf(
 			"Received packet from %s:%d\nSeq: %d\n\n",

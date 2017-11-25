@@ -3,7 +3,7 @@
 #include "toolbox.h"
 
 #define BUFLEN 512
-#define NPACK 50
+#define NPACK 20
 #define PORT 9930
 #define BUF_SIZE 1000
  /* diep(), #includes and #defines like in the server */
@@ -73,17 +73,16 @@ int main(void){
 		tv.tv_sec = 1;
 		tv.tv_usec = 0;
 
-		// int start_seq = fsm.cwnd_seq > fsm.seq ? fsm.cwnd_seq : fsm.seq;
-    debug_printf("Check cwnd seq %d\n", window_id(&fsm, fsm.cwnd_seq));
+    debug_printf("Check cwnd seq sw id=%d value=%d\n", window_id(&fsm, fsm.cwnd_seq), fsm.slide_window[window_id(&fsm, fsm.cwnd_seq)]);
     while(fsm.slide_window[window_id(&fsm, fsm.cwnd_seq)] == 1){
+      debug_printf("udpate cwnd head %d %d %d\n", fsm.cwnd_seq, window_id(&fsm, fsm.cwnd_seq), fsm.slide_window[window_id(&fsm, fsm.cwnd_seq)]);
       fsm.slide_window[window_id(&fsm, fsm.cwnd_seq)] = -1; // reset state
       fsm.cwnd_seq++;
       fsm.sw_head++;
       fsm.sw_head %= fsm.cwnd;
-      debug_printf("udpate cwnd head %d\n", fsm.cwnd_seq);
     }
 
-    debug_printf("WINDOW [%d, %d]\n", fsm.cwnd_seq, fsm.cwnd_seq + fsm.cwnd);
+    debug_printf("WINDOW [%d, %d] head_id[%d]\n", fsm.cwnd_seq, fsm.cwnd, fsm.sw_head);
 
 		for (int j = fsm.cwnd_seq; j < fsm.cwnd_seq + fsm.cwnd; j++) {
       int cwnd_index = 0;
@@ -105,6 +104,7 @@ int main(void){
 
 		if (!FD_ISSET(s, &readfds)) {
 			// time out!
+      SW_rerange(&fsm);
 			fsm.ssthresh = fsm.cwnd / 2;
 			fsm.cwnd = 1;
 			fsm.dup_count = 0;
@@ -118,23 +118,22 @@ int main(void){
 			struct TCP_PK pk = { -1, 0, "", 0 };
 
 			recvfrom(s, (void *)&pk, sizeof(TCP_PK), 0, (struct sockaddr*) &si_other, (socklen_t*) &slen);
-      debug_printf("ACK %d, fsm_lastack %d\n", pk.ack, fsm.last_acked);
 
       ACK_STATE ack_s = ACK_check(&pk, &fsm);
       int cwnd_index = 0;
+      cwnd_index = window_id(&fsm, pk.ack - 1);
+      fsm.last_acked = pk.ack;
 
-			switch(ack_s) {
+      switch(ack_s) {
 				case _ACKED:
-          debug_printf("[%d] ACKED %d\n", fsm.seq, pk.ack);
 					// Normal behavior.
-          cwnd_index = window_id(&fsm, pk.ack - 1);
+          debug_printf("[%d] ACKED %d %d \n", fsm.seq, pk.ack, cwnd_index);
 
-          fsm.last_acked = pk.ack;
 					fsm.dup_count = 0;
-					// fsm.cwnd_seq = pk.ack >= fsm.cwnd_seq ? pk.ack : fsm.cwnd_seq;
-          fsm.slide_window[cwnd_index] = 1; // 1 denote acked
+          fsm.slide_window[cwnd_index] += 1; // >=1 denote acked
 
 					// cwnd control.
+          SW_rerange(&fsm);
 					if (fsm.state == _SLOW_START) {
 						fsm.cwnd *= 2;
 
@@ -154,22 +153,25 @@ int main(void){
 
           fsm.cwnd = fsm.cwnd > 256 ? 256 : fsm.cwnd;  // set cwnd upper bound to 256 pk.
 
-				break;
+        break;
 
 				case _DUP:
-        debug_printf("[%d] DUP_ACK %d\n", fsm.seq, pk.ack);
-					fsm.dup_count += 1;
+          debug_printf("[%d] DUP_ACK %d, SW[%d] = %d\n", fsm.seq, pk.ack, cwnd_index, fsm.slide_window[cwnd_index]);
+					fsm.slide_window[cwnd_index] += 1;
 
-					if (fsm.dup_count >= 3) { // triblue-dup
-						// fsm.cwnd_seq = pk.ack; // for retransmit
-						fsm.dup_count = 0;
+					if (fsm.slide_window[cwnd_index] >= 3) { // triblue-dup
+						fsm.slide_window[cwnd_index] = -1;
 						fsm.state = _RECOVER;
 						fsm.ssthresh = fsm.cwnd / 2;
+
+            // SW_rerange(&fsm);
+            SW_reset(&fsm);
+            fsm.sw_head = 0;
+            fsm.cwnd_seq = pk.ack;
 						fsm.cwnd = fsm.ssthresh + 3;
             print_duplicate();
 						print_cwnd(fsm.cwnd);
 					}
-					fsm.last_acked = pk.ack;
 				break;
 
 				case _OUT_ORDER:
